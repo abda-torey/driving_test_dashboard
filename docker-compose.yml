@@ -1,0 +1,161 @@
+
+x-airflow-common: &airflow-common
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+    environment:
+      - AIRFLOW__CORE__LOAD_EXAMPLES=${AIRFLOW__CORE__LOAD_EXAMPLES}
+      - AIRFLOW__CORE__EXECUTOR=${AIRFLOW__CORE__EXECUTOR}
+      - AIRFLOW__WEBSERVER__WORKER_TIMEOUT=${AIRFLOW__WEBSERVER__WORKER_TIMEOUT}
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN}
+      # - AIRFLOW__CORE__FERNET_KEY=${AIRFLOW__CORE__FERNET_KEY}
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+      # - ./keys/first-key.json:/opt/airflow/keys/first-key.json
+      - /var/run/docker.sock:/var/run/docker.sock
+    env_file:
+    - airflow.env
+    user: "${AIRFLOW_UID}:0"  # Ensure Airflow uses the correct UID for file permissions
+    extra_hosts:
+      - "host.docker.internal:127.0.0.1"
+      - "host.docker.internal:host-gateway"
+
+
+services:
+  redpanda-1:
+    image: redpandadata/redpanda:v24.2.18
+    container_name: redpanda-1
+    command:
+      - redpanda
+      - start
+      - --smp
+      - '1'
+      - --reserve-memory
+      - 0M
+      - --overprovisioned
+      - --node-id
+      - '1'
+      - --kafka-addr
+      - PLAINTEXT://0.0.0.0:29092,OUTSIDE://0.0.0.0:9092
+      - --advertise-kafka-addr
+      - PLAINTEXT://redpanda-1:29092,OUTSIDE://localhost:9092
+      - --pandaproxy-addr
+      - PLAINTEXT://0.0.0.0:28082,OUTSIDE://0.0.0.0:8082
+      - --advertise-pandaproxy-addr
+      - PLAINTEXT://redpanda-1:28082,OUTSIDE://localhost:8082
+      - --rpc-addr
+      - 0.0.0.0:33145
+      - --advertise-rpc-addr
+      - redpanda-1:33145
+    ports:
+      # - 8081:8081
+      - 8082:8082
+      - 9092:9092
+      - 28082:28082
+      - 29092:29092
+
+  jobmanager:
+    build:
+      context: .
+      dockerfile: ./Dockerfile.flink
+    image: pyflink:1.16.0
+    container_name: "flink-jobmanager"
+    pull_policy: never
+    platform: "linux/amd64"
+    hostname: "jobmanager"
+    expose:
+      - "6123"
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./:/opt/flink/usrlib
+      - ./keys/:/var/private/ssl/
+      - ./src/:/opt/src
+      - ./data:/opt/data
+      # - ./keys/first-key.json:/opt/keys/first-key.json
+    command: jobmanager 
+    extra_hosts:
+      - "host.docker.internal:127.0.0.1" #// Linux
+      - "host.docker.internal:host-gateway" #// Access services on the host machine from within the Docker container
+    environment:
+      - POSTGRES_URL=${POSTGRES_URL}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager      
+    env_file:
+      - .env  
+  
+  # Flink task manager
+  taskmanager:
+    image: pyflink:1.16.0
+    container_name: "flink-taskmanager"
+    pull_policy: never
+    platform: "linux/amd64"
+    expose:
+      - "6121"
+      - "6122"
+    volumes:
+      - ./:/opt/flink/usrlib
+      - ./src/:/opt/src
+      - ./data:/opt/data
+      # - ./keys/first-key.json:/opt/keys/first-key.json
+    depends_on:
+      - jobmanager
+    command: taskmanager --taskmanager.registration.timeout 5 min
+    extra_hosts:
+      - "host.docker.internal:127.0.0.1" #// Linux
+      - "host.docker.internal:host-gateway" #// Access services on the host machine from within the Docker container
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        taskmanager.numberOfTaskSlots: 15
+        parallelism.default: 3
+      # - GOOGLE_APPLICATION_CREDENTIALS=/opt/keys/first-key.json
+    env_file:
+      - .env
+
+  postgres:
+    image: postgres:14
+    restart: on-failure
+    container_name: "postgres"
+    environment:
+        - POSTGRES_USER=${POSTGRES_USER}
+        - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+        - POSTGRES_DB=${POSTGRES_DB}
+    env_file:
+      - .env
+    ports:
+      - "5432:5432"
+    extra_hosts:
+     - "host.docker.internal:127.0.0.1" #// Linux
+     - "host.docker.internal:host-gateway" #// Access services on the host machine from within the Docker container
+
+  airflow-webserver:
+    <<: *airflow-common
+    user: "${AIRFLOW_UID}:0"
+    command: airflow webserver
+    ports:
+      - "8080:8080"
+    depends_on:
+      - airflow-scheduler
+
+  # Airflow Scheduler
+  airflow-scheduler:
+    <<: *airflow-common
+    user: "${AIRFLOW_UID}:0"
+    command: >
+      bash -c "
+      airflow db init &&
+      airflow db upgrade && 
+      airflow users create --username admin --firstname abda --lastname torey --role Admin --email admin@admin.com --password admin &&  
+      airflow scheduler
+      "
+    depends_on:
+      - postgres
+     

@@ -4,12 +4,11 @@ x-airflow-common: &airflow-common
       context: .
       dockerfile: Dockerfile.airflow
     environment:
-      - AIRFLOW__CORE__LOAD_EXAMPLES=False
-      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
-      # - AIRFLOW__CORE__FERNET_KEY=myfernetkey
-      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://postgres:postgres@postgres/postgres
-      - AIRFLOW__WEBSERVER__WORKER_TIMEOUT=300
-      # - GOOGLE_APPLICATION_CREDENTIALS=/opt/airflow/keys/first-key.json
+        - AIRFLOW__CORE__LOAD_EXAMPLES=${AIRFLOW__CORE__LOAD_EXAMPLES}
+        - AIRFLOW__CORE__EXECUTOR=${AIRFLOW__CORE__EXECUTOR}
+        - AIRFLOW__WEBSERVER__WORKER_TIMEOUT=${AIRFLOW__WEBSERVER__WORKER_TIMEOUT}
+        - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN}
+        # - AIRFLOW__CORE__FERNET_KEY=${AIRFLOW__CORE__FERNET_KEY}
     volumes:
       - ./dags:/opt/airflow/dags
       - ./logs:/opt/airflow/logs
@@ -81,14 +80,13 @@ services:
       - "host.docker.internal:127.0.0.1" #// Linux
       - "host.docker.internal:host-gateway" #// Access services on the host machine from within the Docker container
     environment:
-      - POSTGRES_URL=${POSTGRES_URL:-jdbc:postgresql://host.docker.internal:5432/postgres}
-      - POSTGRES_USER=${POSTGRES_USER:-postgres}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
-      - POSTGRES_DB=${POSTGRES_DB:-postgres}
-      - GOOGLE_APPLICATION_CREDENTIALS=/opt/keys/first-key.json
-      - |
-        FLINK_PROPERTIES=
-        jobmanager.rpc.address: jobmanager      
+       - POSTGRES_URL=${POSTGRES_URL}
+       - POSTGRES_USER=${POSTGRES_USER}
+       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+       - POSTGRES_DB=${POSTGRES_DB}
+       - |
+         FLINK_PROPERTIES=
+         jobmanager.rpc.address: jobmanager      
     env_file:
       - .env  
   
@@ -121,31 +119,16 @@ services:
       # - GOOGLE_APPLICATION_CREDENTIALS=/opt/keys/first-key.json
     env_file:
       - .env
-  # uploader:
-  #   image: google/cloud-sdk:latest
-  #   depends_on:
-  #     - jobmanager
-  #   volumes:
-  #     - ./data/taxi_events:/opt/data/taxi_events   # Same local directory
-  #     - ./keys/first-key.json:/opt/keys/first-key.json
-  #   environment:
-  #     - GOOGLE_APPLICATION_CREDENTIALS=/opt/keys/first-key.json
-  #   entrypoint: >
-  #     sh -c "gcloud auth activate-service-account --key-file /opt/keys/first-key.json &&
-  #         while true; do 
-  #                 gsutil -m rsync -r /opt/data/taxi_events gs://fake-ecommerce-taxi-data-447320/taxi_events;
-  #                 sleep 60;
-  #               done"
-
+ 
   
   postgres:
     image: postgres:14
     restart: on-failure
     container_name: "postgres"
     environment:
-      - POSTGRES_DB=postgres
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
+       - POSTGRES_USER=${POSTGRES_USER}
+       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+       - POSTGRES_DB=${POSTGRES_DB}
     ports:
       - "5432:5432"
     extra_hosts:

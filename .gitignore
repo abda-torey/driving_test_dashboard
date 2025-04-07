@@ -36,5 +36,32 @@ override.tf.json
 .terraformrc
 terraform.rc
 
-.env 
-airflow.env
+# Ignore data files (data directory)
+data/
+
+# Ignore log files
+logs/
+
+# Ignore keys (potentially sensitive information)
+keys/
+
+# Ignore Python bytecode files
+*.pyc
+*.pyo
+__pycache__/
+
+# Ignore Docker-related files
+*.env
+*.log
+.docker-compose.override.yml
+
+# Ignore virtual environment directories (if any)
+venv/
+.env/
+
+# Ignore system-specific files
+.DS_Store
+Thumbs.db
+
+# Ignore requirements.txt (if it changes too often)
+requirements.txt

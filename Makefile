@@ -33,3 +33,29 @@ install-terraform:
 # Install Docker and Terraform
 install-all: install-docker install-terraform
 	@echo "Docker and Terraform have been successfully installed."
+
+
+.PHONY: build
+## Builds the Flink base image with pyFlink and connectors installed
+build:
+	docker build .
+
+.PHONY: up
+## Builds the base Docker image and starts Flink cluster
+up:
+	docker compose up --build --remove-orphans  -d
+
+.PHONY: down
+## Shuts down the Flink cluster
+down:
+	docker compose down --remove-orphans
+
+.PHONY: ingest_csv
+## Ingest CSV data using Flink job
+ingest_csv:
+	docker exec -it flink-jobmanager ./bin/flink run -py /opt/src/job/ingest_to_gcs.py
+
+.PHONY: ingest_api
+## Ingest data via API using Flink job
+ingest_api:
+	docker exec -it flink-jobmanager ./bin/flink run -py /opt/src/job/ingest_api_gcs.py

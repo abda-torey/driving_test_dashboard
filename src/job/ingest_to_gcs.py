@@ -5,18 +5,19 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-BUCKET_NAME = os.getenv("GCP_BUCKET_NAME")  # e.g., fake-ecommerce-taxi-data-447320
+BUCKET_NAME = os.getenv("GCP_BUCKET_NAME")
+
 
 def create_driving_test_sink_gcs(t_env):
     table_name = 'driving_test_sink'
     sink_ddl = f"""
         CREATE TABLE {table_name} (
-            `Statistic Label` STRING,
-            `Month` STRING,
-            `County` STRING,
-            `Driving Test Categories` STRING,
-            `UNIT` STRING,
-            `VALUE` INT
+             `Statistic Label` STRING,
+                `Month` STRING,
+                `County` STRING,
+                `Driving Test Categories` STRING,
+                `UNIT` STRING,
+                `VALUE` STRING
         ) WITH (
             'connector' = 'filesystem',
             'path' = 'gs://{BUCKET_NAME}/driving_tests/output/',
@@ -31,17 +32,17 @@ def create_driving_test_sink_gcs(t_env):
 
 def create_driving_test_source_local(t_env):
     table_name = "driving_test_source"
-    source_ddl = f"""
-        CREATE TABLE {table_name} (
+    source_ddl = """
+        CREATE TABLE driving_test_source (
             `Statistic Label` STRING,
-            `Month` STRING,
-            `County` STRING,
-            `Driving Test Categories` STRING,
-            `UNIT` STRING,
-            `VALUE` INT
+                `Month` STRING,
+                `County` STRING,
+                `Driving Test Categories` STRING,
+                `UNIT` STRING,
+                `VALUE` STRING
         ) WITH (
             'connector' = 'filesystem',
-            'path' = 'file:///opt/data/driving_test.csv',  -- Adjust to actual local path on VM
+            'path' = 'file:///opt/data/RAO31.csv',
             'format' = 'csv',
             'csv.include-header' = 'true',
             'csv.ignore-parse-errors' = 'true'
@@ -52,32 +53,33 @@ def create_driving_test_source_local(t_env):
 
 
 def log_processing_driving_tests():
-    # Set up the table environment for batch mode
     settings = EnvironmentSettings.new_instance().in_batch_mode().build()
     t_env = TableEnvironment.create(settings)
 
     try:
-        # Create source and sink tables
         source_table = create_driving_test_source_local(t_env)
         gcs_sink_table = create_driving_test_sink_gcs(t_env)
 
-        # Insert records into the GCS sink
+        # Insert and cast VALUE safely, skipping null/empty
         t_env.execute_sql(
             f"""
             INSERT INTO {gcs_sink_table}
-            SELECT
-                `Statistic Label`,
-                `Month`,
-                `County`,
-                `Driving Test Categories`,
-                `UNIT`,
-                `VALUE`
-            FROM {source_table}
+                SELECT
+                    `Statistic Label`,
+                    `Month`,
+                    `County`,
+                    `Driving Test Categories`,
+                    `UNIT`,
+                    CAST(NULLIF(`VALUE`, '') AS STRING) AS `VALUE`
+                FROM {source_table}
+                WHERE `VALUE` IS NOT NULL AND `VALUE` <> ''
             """
         ).wait()
 
+        print(f"✅ Successfully wrote driving test data to gs://{BUCKET_NAME}/driving_tests/output/")
+
     except Exception as e:
-        print("Writing records to GCS failed:", str(e))
+        print("❌ Writing records to GCS failed:", str(e))
 
 
 if __name__ == '__main__':

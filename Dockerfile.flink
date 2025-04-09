@@ -46,7 +46,7 @@ RUN wget -P /opt/flink/lib/ https://storage.googleapis.com/hadoop-lib/gcs/gcs-co
 # Update Flink configuration with GCS properties
 RUN echo "fs.gs.impl: com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem" >> /opt/flink/conf/flink-conf.yaml && \
     echo "fs.AbstractFileSystem.gs.impl: com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS" >> /opt/flink/conf/flink-conf.yaml && \
-    echo "google.cloud.auth.service.account.json.keyfile: " >> /opt/flink/conf/flink-conf.yaml && \
+    # echo "google.cloud.auth.service.account.json.keyfile: " >> /opt/flink/conf/flink-conf.yaml && \
     echo "taskmanager.memory.jvm-metaspace.size: 512m" >> /opt/flink/conf/flink-conf.yaml
 
 

@@ -75,7 +75,7 @@ def fetch_cso_api_data():
 
             value = values[idx]
             if value is None or (isinstance(value, float) and np.isnan(value)):
-                continue
+                value = 0  # or `None` if you want to keep it null for dbt to handle
 
             record = {}
             for i, dim_id in enumerate(dim_order):
@@ -83,7 +83,7 @@ def fetch_cso_api_data():
                 dim_index = combo[i]
                 label = dim_labels[dim_index] if dim_index < len(dim_labels) else "Unknown"
 
-                   # Clean column names
+                # Clean column names
                 if dim_id.upper() == "STATISTIC":
                     col_name = "Statistic"
                 elif dim_id.lower().startswith("c"):
@@ -99,7 +99,8 @@ def fetch_cso_api_data():
                 record[col_name] = label
 
             record['UNIT'] = 'Number'
-            record['VALUE'] = int(value)
+            # Fix: Change 'VALUE' to 'Value' to match BigQuery schema
+            record['Value'] = int(value)  # Changed from 'VALUE' to 'Value'
             records.append(record)
 
         print(f"Extracted {len(records)} records from the API response")
@@ -121,17 +122,34 @@ def main():
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     temp_csv = f"/opt/data/driving_test_{timestamp}.csv"
 
+    # Create DataFrame with the correct column names
     df = pd.DataFrame(cso_data)
+    
+    # Verify column names before saving
+    print(f"DataFrame columns before saving: {df.columns.tolist()}")
+    
+    # Ensure column names match BigQuery schema (case-sensitive)
+    column_mapping = {
+        'Statistic': 'Statistic',
+        'Month': 'Month',
+        'Driving Test Categories': 'Driving Test Categories',
+        'Driving Test Centre': 'Driving Test Centre',
+        'UNIT': 'UNIT',
+        'Value': 'VALUE'  # Ensure this matches what's used in the record creation
+    }
+    
+    df = df.rename(columns=column_mapping)
+    print(f"DataFrame columns after mapping: {df.columns.tolist()}")
+    
+    # Save to CSV
     df.to_csv(temp_csv, index=False)
     print(f"Saved {len(df)} records to temporary CSV: {temp_csv}")
-
-    # You can define and register a source table here using Table API if needed
-
-
+    print(df.head(10))
 
     # Now defines source and sink tables using the Table API
     try:
         # Create source table from the temporary CSV
+        # Ensure column names here match what's in the CSV
         source_table = "driving_test_source"
         source_ddl = f"""
             CREATE TABLE {source_table} (
@@ -145,7 +163,6 @@ def main():
                 'connector' = 'filesystem',
                 'path' = 'file://{temp_csv}',
                 'format' = 'csv',
-                'csv.include-header' = 'true',
                 'csv.ignore-parse-errors' = 'true'
             );
         """
@@ -163,9 +180,9 @@ def main():
                 `VALUE` INT
             ) WITH (
                 'connector' = 'filesystem',
-                'path' = 'gs://{BUCKET_NAME}/driving_tests/output/api/',
+                'path' = 'gs://{BUCKET_NAME}/driving_tests/api/',
                 'format' = 'csv',
-                'csv.include-header' = 'true',
+                'csv.write-header' = 'true',
                 'sink.parallelism' = '1'
             )
         """
@@ -189,7 +206,21 @@ def main():
         
         # Wait for job completion
         result.wait()
-        print(f"Successfully wrote driving test data to gs://{BUCKET_NAME}/driving_tests/output/")
+        preview_result = t_env.sql_query(f"""
+                    SELECT
+                        `Statistic`,
+                        `Month`,
+                        `Driving Test Categories`,
+                        `Driving Test Centre`,
+                        `UNIT`,
+                        `VALUE`
+                    FROM {source_table}
+                    LIMIT 10
+                """)
+
+        # Print to terminal
+        preview_result.execute().print()
+        print(f"Successfully wrote driving test data to gs://{BUCKET_NAME}/driving_tests/api/")
         
         # Clean up temporary file
         os.remove(temp_csv)

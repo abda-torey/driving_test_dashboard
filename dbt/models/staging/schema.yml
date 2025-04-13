@@ -1,0 +1,12 @@
+version: 2
+
+sources:
+  - name: staging
+    database: de-projects-455923
+    schema: driving_test_dataset
+    description: "source data for the driving test dashboard, containing two tables"
+    tables:
+      - name: driving_test_api_table
+        description: "contains data from api that has data about driving test applications"
+      - name: driving_test_localfile_table
+        description: "from local csv file, containes info about driving tests"

@@ -1,0 +1,119 @@
+version: 2
+
+models:
+
+  - name: dim_category
+    description: "Dimension table containing driving test categories."
+    columns:
+      - name: category_id
+        description: "Unique identifier for the driving test category."
+        tests:
+          - unique
+          - not_null
+      - name: category_name
+        description: "Full name of the driving test category."
+        tests:
+          - not_null
+
+  - name: dim_test_centre
+    description: "Dimension table containing driving test centres."
+    columns:
+      - name: test_centre_id
+        description: "Unique identifier for the test centre."
+        tests:
+          - unique
+          - not_null
+      - name: test_centre_name
+        description: "Full name of the test centre."
+        tests:
+          - not_null
+
+  - name: dim_date
+    description: "Date dimension table enriched with year, quarter, and month."
+    columns:
+      - name: month_date
+        description: "First day of the month."
+        tests:
+          - unique
+          - not_null
+      - name: year
+        description: "Year extracted from the month_date."
+        tests:
+          - not_null
+      - name: quarter
+        description: "Quarter extracted from the month_date."
+        tests:
+          - not_null
+      - name: month_name
+        description: "Month name (e.g., January)."
+        tests:
+          - not_null
+
+  - name: dim_county
+    description: "Dimension table for county information."
+    columns:
+      - name: county_id
+        description: "Unique identifier for the county."
+        tests:
+          - unique
+          - not_null
+      - name: county_name
+        description: "Full name of the county."
+        tests:
+          - not_null
+
+  - name: fact_test_applications
+    description: "Fact table containing driving test application statistics from the API data."
+    columns:
+      - name: month_date
+        description: "Reference to dim_date.month_date."
+        tests:
+          - not_null
+      - name: category_id
+        description: "Reference to dim_category.category_id."
+        tests:
+          - not_null
+      - name: test_centre_id
+        description: "Reference to dim_test_centre.test_centre_id."
+        tests:
+          - not_null
+      - name: applications_received
+        description: "Number of applications received for driving tests."
+      - name: applicants_waiting
+        description: "Number of applicants waiting at month end."
+      - name: applicants_scheduled
+        description: "Number of applicants scheduled at month end."
+      - name: applicants_paused
+        description: "Number of applicants paused at month end."
+      - name: applicants_not_eligible
+        description: "Number of applicants not eligible at month end."
+
+  - name: fact_test_results
+    description: "Fact table containing test result statistics from the local file."
+    columns:
+      - name: month_date
+        description: "Reference to dim_date.month_date."
+        tests:
+          - not_null
+      - name: county_id
+        description: "Reference to dim_county.county_id."
+        tests:
+          - not_null
+      - name: category_id
+        description: "Reference to dim_category.category_id."
+        tests:
+          - not_null
+      - name: tests_delivered
+        description: "Number of driving tests delivered."
+      - name: pass_rate
+        description: "Percentage of test passes (0-100)."
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+      - name: no_shows
+        description: "Number of no-shows for tests."
+      - name: not_conducted
+        description: "Number of tests not conducted."
+

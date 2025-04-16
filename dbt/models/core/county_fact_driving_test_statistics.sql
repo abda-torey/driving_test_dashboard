@@ -1,4 +1,3 @@
-
 {{ config(
     materialized='table'
 ) }}
@@ -8,11 +7,14 @@ with application_stats as (
     select
         year,
         month,
-        county,
+        TRIM(REGEXP_REPLACE(county, r'^Co\.?\s+', '')) AS county,
         test_category,
         statistic,
         total_applications as stat_value
     from {{ ref('stg_staging__driving_test_api_table') }}
+    where 
+        lower(county) not in ('ireland') and county is not null
+        and lower(test_category) not in ('all test categories') and test_category is not null
 
 ),
 
@@ -40,11 +42,14 @@ local_stats as (
     select
         SAFE_CAST(SPLIT(month, ' ')[0] AS STRING) AS year,
         SAFE_CAST(SPLIT(month, ' ')[1] AS STRING) AS month,
-        county,
+        TRIM(REGEXP_REPLACE(county, r'^Co\.?\s+', '')) AS county,
         driving_test_categories as test_category,
         statistic_label,
         SAFE_CAST(value AS FLOAT64) as stat_value
     from {{ ref('stg_staging__driving_test_localfile_table') }}
+    where 
+        lower(county) not in ('ireland') and county is not null
+        and lower(driving_test_categories) not in ('all test categories') and driving_test_categories is not null
 
 ),
 

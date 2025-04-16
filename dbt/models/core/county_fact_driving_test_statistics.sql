@@ -7,7 +7,7 @@ with application_stats as (
     select
         year,
         month,
-        REGEXP_REPLACE(TRIM(county), r'(?i)^Co\.\s*', '') as county,
+        TRIM(REGEXP_REPLACE(county, r'^Co\.?\s+', '')) AS county,
         test_category,
         statistic,
         total_applications as stat_value
@@ -42,7 +42,7 @@ local_stats as (
     select
         SAFE_CAST(SPLIT(month, ' ')[0] AS STRING) AS year,
         SAFE_CAST(SPLIT(month, ' ')[1] AS STRING) AS month,
-        county,
+        TRIM(REGEXP_REPLACE(county, r'^Co\.?\s+', '')) AS county,
         driving_test_categories as test_category,
         statistic_label,
         SAFE_CAST(value AS FLOAT64) as stat_value

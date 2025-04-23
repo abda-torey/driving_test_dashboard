@@ -46,7 +46,7 @@ def create_drivingtest_source_local(t_env):
             'connector' = 'filesystem',
             'path' = 'file:///opt/data/RAO31.csv',  -- Local CSV file path for driversTests
             'format' = 'csv',
-            'csv.include-header' = 'true',  -- Include header row in CSV output
+            'csv.include-header' = 'false',  -- Include header row in CSV output
             'csv.ignore-parse-errors' = 'true'
         );
     """

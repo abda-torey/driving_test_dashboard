@@ -29,7 +29,7 @@ dag = DAG(
 load_csv = GCSToBigQueryOperator(
     task_id='gcs_to_bigquery',
     bucket=BUCKET_NAME,
-    source_objects=['driving_tests/api/*'],
+    source_objects=['driving_tests/api/r034/*'],
     destination_project_dataset_table=f'{PROJECT_ID}.{DATASET_NAME}.{TABLE_NAME}',
     schema_fields=[
         {'name': 'Statistic', 'type': 'STRING', 'mode': 'NULLABLE'},

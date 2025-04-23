@@ -2,7 +2,7 @@ with
 
 source as (
 
-    select * from {{ source('staging', 'driving_test_api_table') }}
+    select * from {{ source('staging', 'driving_test_ro34_table') }}
 
 ),
 
@@ -12,7 +12,6 @@ renamed as (
         statistic,
         SAFE_CAST(SPLIT(month, ' ')[0] AS STRING) AS year,
         SAFE_CAST(SPLIT(month, ' ')[1] AS STRING) AS month,
-        `driving_test_categories` AS test_category,
         `driving_test_centre` AS test_centre_raw,
         -- Extract county name
         case 

@@ -2,7 +2,7 @@ with
 
 source as (
 
-    select * from {{ source('staging', 'driving_test_api_table') }}
+    select * from {{ source('staging', 'driving_test_ro30_table') }}
 
 ),
 

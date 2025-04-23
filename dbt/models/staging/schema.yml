@@ -10,3 +10,7 @@ sources:
         description: "contains data from api that has data about driving test applications"
       - name: driving_test_localfile_table
         description: "from local csv file, containes info about driving tests"
+      - name: driving_test_ro30_table
+        description: "from local csv file, containes info about driving tests"
+      - name: driving_test_ro34_table
+        description: "from local csv file, containes info about driving tests"

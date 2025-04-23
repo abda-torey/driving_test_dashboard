@@ -142,7 +142,7 @@ def main():
     print(f"DataFrame columns after mapping: {df.columns.tolist()}")
     
     # Save to CSV
-    df.to_csv(temp_csv, index=False)
+    df.to_csv(temp_csv, index=False, header=False)
     print(f"Saved {len(df)} records to temporary CSV: {temp_csv}")
     print(df.head(10))
 

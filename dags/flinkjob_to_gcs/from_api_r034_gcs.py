@@ -20,7 +20,7 @@ dag = DAG(
 )
 
 run_flink_command = """
-docker exec -it flink-jobmanager ./bin/flink run -py /opt/src/job/ingest_r034_api_gcs.py
+docker exec flink-jobmanager ./bin/flink run -py /opt/src/job/ingest_r034_api_gcs.py
 """
 
 run_flink_api_data_task = BashOperator(

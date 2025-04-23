@@ -131,7 +131,7 @@ def main():
     column_mapping = {
         'Statistic': 'Statistic',
         'Month': 'Month',
-        'Driving Test Categories': 'Driving Test Categories',
+        
         'Driving Test Centre': 'Driving Test Centre',
         'UNIT': 'UNIT',
         'Value': 'VALUE'  # Ensure this matches what's used in the record creation
@@ -154,7 +154,7 @@ def main():
             CREATE TABLE {source_table} (
                 `Statistic` STRING,
                 `Month` STRING,
-                `Driving Test Categories` STRING,
+            
                 `Driving Test Centre` STRING,
                 `UNIT` STRING,
                 `VALUE` INT
@@ -173,7 +173,6 @@ def main():
             CREATE TABLE {sink_table} (
                 `Statistic` STRING,
                 `Month` STRING,
-                `Driving Test Categories` STRING,
                 `Driving Test Centre` STRING,
                 `UNIT` STRING,
                 `VALUE` INT
@@ -195,7 +194,6 @@ def main():
             SELECT
                 `Statistic`,
                 `Month`,
-                `Driving Test Categories`,
                 `Driving Test Centre`,
                 `UNIT`,
                 `VALUE`
@@ -209,7 +207,7 @@ def main():
                     SELECT
                         `Statistic`,
                         `Month`,
-                        `Driving Test Categories`,
+                       
                         `Driving Test Centre`,
                         `UNIT`,
                         `VALUE`

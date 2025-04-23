@@ -18,7 +18,7 @@ x-airflow-common: &airflow-common
       - /var/run/docker.sock:/var/run/docker.sock
     env_file:
     - .env
-    user: "${AIRFLOW_UID}:0"  # Ensure Airflow uses the correct UID for file permissions
+    # user: "${AIRFLOW_UID}:0"  # Ensure Airflow uses the correct UID for file permissions
     extra_hosts:
       - "host.docker.internal:127.0.0.1"
       - "host.docker.internal:host-gateway"
@@ -139,7 +139,7 @@ services:
 
   airflow-webserver:
     <<: *airflow-common
-    user: "${AIRFLOW_UID}:0"
+    
     command: airflow webserver
     ports:
       - "8080:8080"
@@ -149,7 +149,7 @@ services:
   # Airflow Scheduler
   airflow-scheduler:
     <<: *airflow-common
-    user: "${AIRFLOW_UID}:0"
+    
     command: >
       bash -c "
       airflow db init &&

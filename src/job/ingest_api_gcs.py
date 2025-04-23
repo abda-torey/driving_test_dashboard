@@ -180,7 +180,7 @@ def main():
                 `VALUE` INT
             ) WITH (
                 'connector' = 'filesystem',
-                'path' = 'gs://{BUCKET_NAME}/driving_tests/api/',
+                'path' = 'gs://{BUCKET_NAME}/driving_tests/api/old/',
                 'format' = 'csv',
                 'csv.write-header' = 'true',
                 'sink.parallelism' = '1'

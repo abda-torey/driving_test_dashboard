@@ -10,7 +10,7 @@ with application_stats as (
         TRIM(REGEXP_REPLACE(county, r'^Co\.?\s+', '')) AS county,
         test_category,
         statistic,
-        total_applications as stat_value
+        unit as stat_value
     from {{ ref('stg_staging__driving_test_api_table') }}
     where 
         lower(county) not in ('ireland') and county is not null
@@ -40,8 +40,8 @@ pivoted_applications as (
 local_stats as (
 
     select
-        SAFE_CAST(SPLIT(month, ' ')[0] AS STRING) AS year,
-        SAFE_CAST(SPLIT(month, ' ')[1] AS STRING) AS month,
+        year,
+        month,
         TRIM(REGEXP_REPLACE(county, r'^Co\.?\s+', '')) AS county,
         driving_test_categories as test_category,
         statistic_label,
@@ -68,27 +68,88 @@ pivoted_local as (
     from local_stats
     group by year, month, county, test_category
 
+),
+
+combined_stats as (
+
+    select
+        COALESCE(a.year, l.year) as year,
+
+        -- numeric month
+        CASE 
+            WHEN LOWER(COALESCE(a.month, l.month)) IN ('jan', 'january') THEN 1
+            WHEN LOWER(COALESCE(a.month, l.month)) IN ('feb', 'february') THEN 2
+            WHEN LOWER(COALESCE(a.month, l.month)) IN ('mar', 'march') THEN 3
+            WHEN LOWER(COALESCE(a.month, l.month)) IN ('apr', 'april') THEN 4
+            WHEN LOWER(COALESCE(a.month, l.month)) IN ('may') THEN 5
+            WHEN LOWER(COALESCE(a.month, l.month)) IN ('jun', 'june') THEN 6
+            WHEN LOWER(COALESCE(a.month, l.month)) IN ('jul', 'july') THEN 7
+            WHEN LOWER(COALESCE(a.month, l.month)) IN ('aug', 'august') THEN 8
+            WHEN LOWER(COALESCE(a.month, l.month)) IN ('sep', 'september') THEN 9
+            WHEN LOWER(COALESCE(a.month, l.month)) IN ('oct', 'october') THEN 10
+            WHEN LOWER(COALESCE(a.month, l.month)) IN ('nov', 'november') THEN 11
+            WHEN LOWER(COALESCE(a.month, l.month)) IN ('dec', 'december') THEN 12
+            ELSE SAFE_CAST(COALESCE(a.month, l.month) AS INT64)
+        END as month,
+
+        -- human-readable month name
+        FORMAT_DATE('%B', DATE_FROM_UNIX_DATE(DATE_DIFF(DATE_TRUNC(CURRENT_DATE(), MONTH), DATE_TRUNC(DATE_TRUNC(CURRENT_DATE(), YEAR), MONTH), MONTH) + 
+            CASE 
+                WHEN LOWER(COALESCE(a.month, l.month)) IN ('jan', 'january') THEN 0
+                WHEN LOWER(COALESCE(a.month, l.month)) IN ('feb', 'february') THEN 1
+                WHEN LOWER(COALESCE(a.month, l.month)) IN ('mar', 'march') THEN 2
+                WHEN LOWER(COALESCE(a.month, l.month)) IN ('apr', 'april') THEN 3
+                WHEN LOWER(COALESCE(a.month, l.month)) IN ('may') THEN 4
+                WHEN LOWER(COALESCE(a.month, l.month)) IN ('jun', 'june') THEN 5
+                WHEN LOWER(COALESCE(a.month, l.month)) IN ('jul', 'july') THEN 6
+                WHEN LOWER(COALESCE(a.month, l.month)) IN ('aug', 'august') THEN 7
+                WHEN LOWER(COALESCE(a.month, l.month)) IN ('sep', 'september') THEN 8
+                WHEN LOWER(COALESCE(a.month, l.month)) IN ('oct', 'october') THEN 9
+                WHEN LOWER(COALESCE(a.month, l.month)) IN ('nov', 'november') THEN 10
+                WHEN LOWER(COALESCE(a.month, l.month)) IN ('dec', 'december') THEN 11
+                ELSE SAFE_CAST(COALESCE(a.month, l.month) AS INT64) - 1
+            END
+        )) as month_name,
+
+        -- YYYY-MM formatted date
+        PARSE_DATE('%Y-%m', CONCAT(CAST(COALESCE(a.year, l.year) AS STRING), '-', LPAD(CAST(
+            CASE 
+                WHEN LOWER(COALESCE(a.month, l.month)) IN ('jan', 'january') THEN 1
+                WHEN LOWER(COALESCE(a.month, l.month)) IN ('feb', 'february') THEN 2
+                WHEN LOWER(COALESCE(a.month, l.month)) IN ('mar', 'march') THEN 3
+                WHEN LOWER(COALESCE(a.month, l.month)) IN ('apr', 'april') THEN 4
+                WHEN LOWER(COALESCE(a.month, l.month)) IN ('may') THEN 5
+                WHEN LOWER(COALESCE(a.month, l.month)) IN ('jun', 'june') THEN 6
+                WHEN LOWER(COALESCE(a.month, l.month)) IN ('jul', 'july') THEN 7
+                WHEN LOWER(COALESCE(a.month, l.month)) IN ('aug', 'august') THEN 8
+                WHEN LOWER(COALESCE(a.month, l.month)) IN ('sep', 'september') THEN 9
+                WHEN LOWER(COALESCE(a.month, l.month)) IN ('oct', 'october') THEN 10
+                WHEN LOWER(COALESCE(a.month, l.month)) IN ('nov', 'november') THEN 11
+                WHEN LOWER(COALESCE(a.month, l.month)) IN ('dec', 'december') THEN 12
+                ELSE SAFE_CAST(COALESCE(a.month, l.month) AS INT64)
+            END AS STRING), 2, '0')
+        )) as date_month,
+
+        COALESCE(a.county, l.county) as county,
+        COALESCE(a.test_category, l.test_category) as test_category,
+
+        a.applications_received,
+        a.applicants_waiting,
+        a.applicants_scheduled,
+        a.applicants_paused,
+        a.applicants_not_eligible,
+
+        l.tests_delivered,
+        l.pass_rate,
+        l.no_shows
+
+    from pivoted_applications a
+    full outer join pivoted_local l
+        on a.year = l.year
+        and a.month = l.month
+        and a.county = l.county
+        and a.test_category = l.test_category
+
 )
 
-select
-    COALESCE(a.year, l.year) as year,
-    COALESCE(a.month, l.month) as month,
-    COALESCE(a.county, l.county) as county,
-    COALESCE(a.test_category, l.test_category) as test_category,
-
-    a.applications_received,
-    a.applicants_waiting,
-    a.applicants_scheduled,
-    a.applicants_paused,
-    a.applicants_not_eligible,
-
-    l.tests_delivered,
-    l.pass_rate,
-    l.no_shows
-
-from pivoted_applications a
-full outer join pivoted_local l
-on a.year = l.year
-and a.month = l.month
-and a.county = l.county
-and a.test_category = l.test_category
+select * from combined_stats

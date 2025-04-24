@@ -82,7 +82,57 @@ combined_stats as (
     select
     
         COALESCE(a.year, b.year) as year,
-        COALESCE(a.month, b.month) as month,
+        -- Convert raw month to integer
+    CASE 
+        WHEN LOWER(COALESCE(a.month, b.month)) IN ('jan', 'january') THEN 1
+        WHEN LOWER(COALESCE(a.month, b.month)) IN ('feb', 'february') THEN 2
+        WHEN LOWER(COALESCE(a.month, b.month)) IN ('mar', 'march') THEN 3
+        WHEN LOWER(COALESCE(a.month, b.month)) IN ('apr', 'april') THEN 4
+        WHEN LOWER(COALESCE(a.month, b.month)) IN ('may') THEN 5
+        WHEN LOWER(COALESCE(a.month, b.month)) IN ('jun', 'june') THEN 6
+        WHEN LOWER(COALESCE(a.month, b.month)) IN ('jul', 'july') THEN 7
+        WHEN LOWER(COALESCE(a.month, b.month)) IN ('aug', 'august') THEN 8
+        WHEN LOWER(COALESCE(a.month, b.month)) IN ('sep', 'september') THEN 9
+        WHEN LOWER(COALESCE(a.month, b.month)) IN ('oct', 'october') THEN 10
+        WHEN LOWER(COALESCE(a.month, b.month)) IN ('nov', 'november') THEN 11
+        WHEN LOWER(COALESCE(a.month, b.month)) IN ('dec', 'december') THEN 12
+        ELSE SAFE_CAST(COALESCE(a.month, b.month) AS INT64)
+    END as month,
+    FORMAT_DATE('%B', DATE_FROM_UNIX_DATE(DATE_DIFF(DATE_TRUNC(CURRENT_DATE(), MONTH), DATE_TRUNC(DATE_TRUNC(CURRENT_DATE(), YEAR), MONTH), MONTH) + 
+        CASE 
+            WHEN LOWER(COALESCE(a.month, b.month)) IN ('jan', 'january') THEN 0
+            WHEN LOWER(COALESCE(a.month, b.month)) IN ('feb', 'february') THEN 1
+            WHEN LOWER(COALESCE(a.month, b.month)) IN ('mar', 'march') THEN 2
+            WHEN LOWER(COALESCE(a.month, b.month)) IN ('apr', 'april') THEN 3
+            WHEN LOWER(COALESCE(a.month, b.month)) IN ('may') THEN 4
+            WHEN LOWER(COALESCE(a.month, b.month)) IN ('jun', 'june') THEN 5
+            WHEN LOWER(COALESCE(a.month, b.month)) IN ('jul', 'july') THEN 6
+            WHEN LOWER(COALESCE(a.month, b.month)) IN ('aug', 'august') THEN 7
+            WHEN LOWER(COALESCE(a.month, b.month)) IN ('sep', 'september') THEN 8
+            WHEN LOWER(COALESCE(a.month, b.month)) IN ('oct', 'october') THEN 9
+            WHEN LOWER(COALESCE(a.month, b.month)) IN ('nov', 'november') THEN 10
+            WHEN LOWER(COALESCE(a.month, b.month)) IN ('dec', 'december') THEN 11
+            ELSE SAFE_CAST(COALESCE(a.month, b.month) AS INT64) - 1
+        END
+    )) as month_name,
+         -- 🌟 Date column for time series line graph
+    PARSE_DATE('%Y-%m', CONCAT(CAST(COALESCE(a.year, b.year) AS STRING), '-', LPAD(CAST(
+        CASE 
+            WHEN LOWER(COALESCE(a.month, b.month)) IN ('jan', 'january') THEN 1
+            WHEN LOWER(COALESCE(a.month, b.month)) IN ('feb', 'february') THEN 2
+            WHEN LOWER(COALESCE(a.month, b.month)) IN ('mar', 'march') THEN 3
+            WHEN LOWER(COALESCE(a.month, b.month)) IN ('apr', 'april') THEN 4
+            WHEN LOWER(COALESCE(a.month, b.month)) IN ('may') THEN 5
+            WHEN LOWER(COALESCE(a.month, b.month)) IN ('jun', 'june') THEN 6
+            WHEN LOWER(COALESCE(a.month, b.month)) IN ('jul', 'july') THEN 7
+            WHEN LOWER(COALESCE(a.month, b.month)) IN ('aug', 'august') THEN 8
+            WHEN LOWER(COALESCE(a.month, b.month)) IN ('sep', 'september') THEN 9
+            WHEN LOWER(COALESCE(a.month, b.month)) IN ('oct', 'october') THEN 10
+            WHEN LOWER(COALESCE(a.month, b.month)) IN ('nov', 'november') THEN 11
+            WHEN LOWER(COALESCE(a.month, b.month)) IN ('dec', 'december') THEN 12
+            ELSE SAFE_CAST(COALESCE(a.month, b.month) AS INT64)
+        END AS STRING), 2, '0')
+    )) as date_month,
         COALESCE(a.county, b.county) as county,
         COALESCE(a.test_centre, b.test_centre) as test_centre,
         COALESCE(a.test_category, b.test_category) as test_category,

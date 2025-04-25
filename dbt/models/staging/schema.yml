@@ -14,3 +14,136 @@ sources:
         description: "from local csv file, containes info about driving tests"
       - name: driving_test_ro34_table
         description: "from local csv file, containes info about driving tests"
+
+models:
+  - name: stg_staging_driving_test_api_table
+    description: >
+      Staging model for the driving test API data. Transforms and standardizes raw API data, including splitting dates and extracting county info.
+    columns:
+      - name: statistic
+        description: Type of statistic reported (e.g., tests conducted, passed, etc.).
+        tests:
+          - not_null
+      - name: year
+        description: Year extracted from the original month field.
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['2018', '2019', '2020', '2021', '2022', '2023', '2024']
+              config:
+                severity: warn
+      - name: month
+        description: Month extracted from the original month field.
+        tests:
+          - not_null
+      - name: test_category
+        description: Category of the driving test.
+        tests:
+          - not_null
+      - name: test_centre_raw
+        description: Raw name of the driving test centre from the source data.
+        tests:
+          - not_null
+      - name: county
+        description: County extracted from the test centre name.
+        tests:
+          - not_null
+      - name: unit
+        description: Integer value representing the count for the statistic (e.g., number of tests).
+        tests:
+          - not_null
+
+  - name: stg_staging__driving_test_localfile_table
+    description: >
+      Staging model for local CSV file data containing driving test statistics by county and category.
+    columns:
+      - name: statistic_label
+        description: Label describing the type of statistic (e.g., test conducted, passed).
+        tests:
+          - not_null
+      - name: year
+        description: Year extracted from the month column.
+        tests:
+          - not_null
+      - name: month
+        description: Month extracted from the month column.
+        tests:
+          - not_null
+      - name: county
+        description: County where the data was recorded.
+        tests:
+          - not_null
+      - name: driving_test_categories
+        description: Driving test category (e.g., Car, Motorcycle).
+        tests:
+          - not_null
+      - name: unit
+        description: Unit of measurement for the value (e.g., number of tests).
+        tests:
+          - not_null
+      - name: value
+        description: The actual statistic value.
+        tests:
+          - not_null
+
+  - name: stg_staging__driving_test_ro30_table
+    description: >
+      Staging model for RO30 table data from API, capturing test statistics by test centre and category.
+    columns:
+      - name: statistic
+        description: Type of statistic (e.g., pass rate, number tested).
+        tests:
+          - not_null
+      - name: year
+        description: Year extracted from the month column.
+        tests:
+          - not_null
+      - name: month
+        description: Month extracted from the month column.
+        tests:
+          - not_null
+      - name: test_category
+        description: Category of the driving test (e.g., Category B).
+        tests:
+          - not_null
+      - name: test_centre_raw
+        description: Original name of the driving test centre from the data source.
+        tests:
+          - not_null
+      - name: county
+        description: County extracted from the test centre name.
+        tests:
+          - not_null
+      - name: unit
+        description: Integer count representing the value of the statistic.
+        tests:
+          - not_null
+
+  - name: stg_staging__driving_test_ro34_table
+    description: >
+      Staging model for RO34 table data from API, focusing on test centre statistics without test category breakdown.
+    columns:
+      - name: statistic
+        description: Type of statistic (e.g., number of tests conducted).
+        tests:
+          - not_null
+      - name: year
+        description: Year extracted from the month column.
+        tests:
+          - not_null
+      - name: month
+        description: Month extracted from the month column.
+        tests:
+          - not_null
+      - name: test_centre_raw
+        description: Original name of the driving test centre from the data source.
+        tests:
+          - not_null
+      - name: county
+        description: County extracted from the test centre name.
+        tests:
+          - not_null
+      - name: unit
+        description: Integer value for the statistic.
+        tests:
+          - not_null

@@ -1,119 +1,66 @@
 version: 2
 
 models:
-
-  - name: dim_category
-    description: "Dimension table containing driving test categories."
+  - name: county_fact_driving_test_statistics
+    description: >
+      Fact table aggregating driving test data at the county level, including population, total tests conducted, and tests per capita.
     columns:
-      - name: category_id
-        description: "Unique identifier for the driving test category."
-        tests:
-          - unique
-          - not_null
-      - name: category_name
-        description: "Full name of the driving test category."
+      - name: county_name
+        description: Name of the county.
         tests:
           - not_null
+      - name: test_year
+        description: Year in which driving tests were conducted.
+        tests:
+          - not_null
+      - name: population
+        description: Population of the county in the given year.
+        tests:
+          - not_null
+      - name: population_year
+        description: Year the population data corresponds to.
+        tests:
+          - not_null
+      - name: tests_conducted
+        description: Total number of driving tests conducted in the county during the year.
+        tests:
+          - not_null
+      - name: tests_per_capita
+        description: Ratio of tests conducted to population in the county.
+        tests:
+          - not_null
+    tests:
+      - unique:
+          column_name: "(county_name || '-' || test_year)"
 
-  - name: dim_test_centre
-    description: "Dimension table containing driving test centres."
+  - name: test_centre_fact_driving_stats
+    description: >
+      Fact table aggregating driving test statistics at the test centre level, including pass rates and test volumes.
     columns:
-      - name: test_centre_id
-        description: "Unique identifier for the test centre."
-        tests:
-          - unique
-          - not_null
       - name: test_centre_name
-        description: "Full name of the test centre."
+        description: Name of the driving test centre.
         tests:
           - not_null
-
-  - name: dim_date
-    description: "Date dimension table enriched with year, quarter, and month."
-    columns:
-      - name: month_date
-        description: "First day of the month."
+      - name: county
+        description: County where the test centre is located.
         tests:
-          - unique
           - not_null
       - name: year
-        description: "Year extracted from the month_date."
+        description: Year the data relates to.
         tests:
           - not_null
-      - name: quarter
-        description: "Quarter extracted from the month_date."
+      - name: tests_conducted
+        description: Total number of tests conducted at the centre in the given year.
         tests:
           - not_null
-      - name: month_name
-        description: "Month name (e.g., January)."
+      - name: tests_passed
+        description: Number of tests passed at the centre.
         tests:
           - not_null
-
-  - name: dim_county
-    description: "Dimension table for county information."
-    columns:
-      - name: county_id
-        description: "Unique identifier for the county."
-        tests:
-          - unique
-          - not_null
-      - name: county_name
-        description: "Full name of the county."
-        tests:
-          - not_null
-
-  - name: fact_test_applications
-    description: "Fact table containing driving test application statistics from the API data."
-    columns:
-      - name: month_date
-        description: "Reference to dim_date.month_date."
-        tests:
-          - not_null
-      - name: category_id
-        description: "Reference to dim_category.category_id."
-        tests:
-          - not_null
-      - name: test_centre_id
-        description: "Reference to dim_test_centre.test_centre_id."
-        tests:
-          - not_null
-      - name: applications_received
-        description: "Number of applications received for driving tests."
-      - name: applicants_waiting
-        description: "Number of applicants waiting at month end."
-      - name: applicants_scheduled
-        description: "Number of applicants scheduled at month end."
-      - name: applicants_paused
-        description: "Number of applicants paused at month end."
-      - name: applicants_not_eligible
-        description: "Number of applicants not eligible at month end."
-
-  - name: fact_test_results
-    description: "Fact table containing test result statistics from the local file."
-    columns:
-      - name: month_date
-        description: "Reference to dim_date.month_date."
-        tests:
-          - not_null
-      - name: county_id
-        description: "Reference to dim_county.county_id."
-        tests:
-          - not_null
-      - name: category_id
-        description: "Reference to dim_category.category_id."
-        tests:
-          - not_null
-      - name: tests_delivered
-        description: "Number of driving tests delivered."
       - name: pass_rate
-        description: "Percentage of test passes (0-100)."
+        description: Pass rate calculated as passed tests divided by total conducted.
         tests:
           - not_null
-          - dbt_utils.accepted_range:
-              min_value: 0
-              max_value: 100
-      - name: no_shows
-        description: "Number of no-shows for tests."
-      - name: not_conducted
-        description: "Number of tests not conducted."
-
+    tests:
+      - unique:
+          column_name: "(test_centre_name || '-' || year)"
